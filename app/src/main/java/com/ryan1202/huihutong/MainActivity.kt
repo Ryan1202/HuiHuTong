@@ -1,5 +1,6 @@
 package com.ryan1202.huihutong
 
+import android.content.Context.MODE_PRIVATE
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -12,6 +13,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -36,6 +39,16 @@ class MainActivity : ComponentActivity() {
 private fun App() {
     val navController = rememberNavController()
     val viewModel = HuiHuTongViewModel()
+
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("config", MODE_PRIVATE)
+    // 获取保存的 openid
+    val openId = prefs.getString("openid", null)
+    LaunchedEffect(openId) {
+        if (openId != null) {
+            viewModel.openID.value = openId
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -66,7 +79,7 @@ private fun App() {
                 ExitTransition.None
             }
         ) {
-            MainView(viewModel, navController)
+            MainView(viewModel, navController, prefs)
         }
         composable("settings") {
             SettingsView(viewModel, navController)

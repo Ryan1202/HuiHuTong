@@ -3,7 +3,6 @@ package com.ryan1202.huihutong
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
-import android.content.Context.MODE_PRIVATE
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.SharedPreferences
@@ -59,23 +58,9 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 
 @Composable
-fun MainView(viewModel: HuiHuTongViewModel, upperNavController: NavController) {
-    val selectedItem = viewModel.selectedItem
-    val selectedItemValue by remember {
-        selectedItem
-    }
-    val items = listOf("Home", "QRCode")
+fun MainView(viewModel: HuiHuTongViewModel, upperNavController: NavController, prefs: SharedPreferences) {
     val navController = rememberNavController()
     val icons = listOf(Icons.Default.Home, Icons.AutoMirrored.Filled.List)
-
-    val context = LocalContext.current
-    // 获取保存的 openid
-    val prefs = context.getSharedPreferences("config", MODE_PRIVATE)
-    val openId = prefs.getString("openid", null)
-
-    if (openId != null) {
-        viewModel.openID.value = openId
-    }
 
     Scaffold(
         topBar = {
@@ -84,15 +69,17 @@ fun MainView(viewModel: HuiHuTongViewModel, upperNavController: NavController) {
             }
         },
         bottomBar = {
-            BottomBar(items, icons, selectedItemValue){ index ->
-                viewModel.selectedItem.intValue = index
-                navController.navigate(items[index])
+            BottomBar(viewModel.items, icons, viewModel.selectedItem.intValue){ index ->
+                viewModel.navigate_item(navController, index)
             }
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "Home",
+            startDestination =
+                if (viewModel.openID.value == "" )
+                    { viewModel.items[0] }
+                else { viewModel.items[1] },
             enterTransition = {
                 slideInHorizontally(
                     animationSpec = tween(
@@ -114,10 +101,12 @@ fun MainView(viewModel: HuiHuTongViewModel, upperNavController: NavController) {
                 .fillMaxSize()
 
         ) {
-            composable("Home") {
+            composable(viewModel.items[0]) {
+                viewModel.selectedItem.intValue = 0
                 HomeView(viewModel, navController, prefs)
             }
-            composable("QRCode") {
+            composable(viewModel.items[1]) {
+                viewModel.selectedItem.intValue = 1
                 QRCodeView(viewModel, navController)
             }
         }

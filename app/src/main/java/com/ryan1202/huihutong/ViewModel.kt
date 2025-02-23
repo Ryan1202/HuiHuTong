@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavController
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,6 +21,8 @@ import org.json.JSONObject
 
 class HuiHuTongViewModel : ViewModel() {
     var selectedItem = mutableIntStateOf(0)
+    val items = listOf("Home", "QRCode")
+
     var openID = mutableStateOf("")
         private set
 
@@ -32,6 +35,10 @@ class HuiHuTongViewModel : ViewModel() {
     var userName by mutableStateOf("")
         private set
 
+    fun navigate_item(nav_controller: NavController, index: Int) {
+//        selectedItem.intValue = index
+        nav_controller.navigate(items[index])
+    }
     fun setOpenID(openID: String, prefs: SharedPreferences) {
         this.openID.value = openID
         val editor = prefs.edit()
