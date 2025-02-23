@@ -12,6 +12,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -22,6 +24,10 @@ import org.json.JSONObject
 class HuiHuTongViewModel : ViewModel() {
     var selectedItem = mutableIntStateOf(0)
     val items = listOf("Home", "QRCode")
+
+
+    private val _latestRelease = MutableStateFlow<GithubRelease?>(null)
+    val latestRelease: StateFlow<GithubRelease?> = _latestRelease
 
     var openID = mutableStateOf("")
         private set
@@ -35,10 +41,21 @@ class HuiHuTongViewModel : ViewModel() {
     var userName by mutableStateOf("")
         private set
 
+    val showUpdateDialog = mutableStateOf(false)
+
+    fun checkForUpdates(versionName: String) {
+        viewModelScope.launch {
+            val release = fetchLatestRelease()
+            if (release != null && checkVersion(versionName, release.tagName)) {
+                _latestRelease.value = release
+            }
+        }
+    }
+
     fun navigate_item(nav_controller: NavController, index: Int) {
-//        selectedItem.intValue = index
         nav_controller.navigate(items[index])
     }
+
     fun setOpenID(openID: String, prefs: SharedPreferences) {
         this.openID.value = openID
         val editor = prefs.edit()

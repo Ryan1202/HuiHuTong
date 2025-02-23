@@ -41,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -116,11 +117,25 @@ fun MainView(viewModel: HuiHuTongViewModel, upperNavController: NavController, p
 @Composable
 private fun HomeView(viewModel: HuiHuTongViewModel, navController: NavController, prefs: SharedPreferences) {
     var text by remember { mutableStateOf(viewModel.openID.value) }
+    val updateInfo by viewModel.latestRelease.collectAsState()
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.fillMaxSize()
     ) {
+        updateInfo?.let { info ->
+            if (viewModel.showUpdateDialog.value) {
+                UpdateAlertDialog(info, viewModel)
+            }
+        }
         Column {
+            updateInfo?.let { info ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    UpdatePrompt(info, viewModel)
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
@@ -181,6 +196,7 @@ internal fun Context.findActivity(): Activity {
 
 @Composable
 private fun QRCodeView(viewModel: HuiHuTongViewModel, navController: NavController) {
+    val updateInfo by viewModel.latestRelease.collectAsState()
     val openId = viewModel.openID.value
     val context = LocalContext.current
     LaunchedEffect(openId) {
@@ -220,20 +236,50 @@ private fun QRCodeView(viewModel: HuiHuTongViewModel, navController: NavControll
         contentAlignment = Alignment.Center,
         modifier = Modifier.fillMaxSize()
     ) {
+        updateInfo?.let { info ->
+                if (viewModel.showUpdateDialog.value) {
+                    UpdateAlertDialog(info, viewModel)
+                }
+            }
         if (viewModel.isLoading && viewModel.qrBitmap == null) {
-            CircularProgressIndicator()
+            Column {
+                updateInfo?.let { info ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        UpdatePrompt(info, viewModel)
+                    }
+                }
+                CircularProgressIndicator()
+            }
         } else {
             viewModel.qrBitmap?.let {
                 Box(
                     contentAlignment = Alignment.Center
                 ) {
                     Column {
-                        Text(viewModel.userName)
-                        Image(
-                            it.asImageBitmap(),
-                            contentDescription = "二维码",
-                            modifier = Modifier.size(300.dp)
-                        )
+                        updateInfo?.let { info ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                UpdatePrompt(info, viewModel)
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Column {
+                                Text(viewModel.userName)
+                                Image(
+                                    it.asImageBitmap(),
+                                    contentDescription = "二维码",
+                                    modifier = Modifier.size(300.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }

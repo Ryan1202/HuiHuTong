@@ -21,7 +21,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ryan1202.huihutong.ui.theme.HuihutongTheme
 
-
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,6 +46,10 @@ private fun App() {
     LaunchedEffect(openId) {
         if (openId != null) {
             viewModel.openID.value = openId
+        }
+        val versionName = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        versionName?.let {
+            viewModel.checkForUpdates(it)
         }
     }
 
