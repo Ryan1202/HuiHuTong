@@ -1,11 +1,6 @@
 package com.ryan1202.huihutong
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
-import android.widget.Toast
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,7 +26,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -52,41 +46,18 @@ fun SettingsView(navController: NavController, settings: SharedPreferences) {
                 BooleanSetting("检测最新版本", detectLatestVersion) {
                     settings.edit().putBoolean(SettingConfig.detectLatestVersionKey, it).apply()
                 }
-                HorizontalDivider(
-                    modifier = Modifier.padding(8.dp)
-                )
-                Text(
-                    "作者：王嘉骏"
-                )
-                Text(
-                    "Author：Jiajun Wang"
-                )
-                val context = LocalContext.current
-                Text(
-                    modifier = Modifier.clickable() {
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Ryan1202/HuiHuTong"))
-                            context.startActivity(intent)
-                        } catch (e: ActivityNotFoundException) {
-                            Toast.makeText(context, "没有找到可以打开链接的应用", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    text = "https://github.com/Ryan1202/HuiHuTong",
-                    color = MaterialTheme.colorScheme.primary
-                )
+
+                HorizontalDivider(Modifier.padding(8.dp))
+
+                Text("作者：王嘉骏")
+                Text("Author：Jiajun Wang" )
+
+                LinkButton("https://github.com/Ryan1202/HuiHuTong",
+                    "https://github.com/Ryan1202/HuiHuTong")
+
                 Text("感谢 Thanks for: ")
-                Text(
-                    modifier = Modifier.clickable() {
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/PairZhu/HuiHuTong"))
-                            context.startActivity(intent)
-                        } catch (e: ActivityNotFoundException) {
-                            Toast.makeText(context, "没有找到可以打开链接的应用", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                text = "https://github.com/PairZhu/HuiHuTong",
-                color = MaterialTheme.colorScheme.primary
-                )
+                LinkButton("https://github.com/PairZhu/HuiHuTong",
+                    "https://github.com/PairZhu/HuiHuTong")
             }
         }
     }

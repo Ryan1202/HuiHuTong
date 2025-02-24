@@ -10,6 +10,8 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
@@ -32,6 +34,11 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+sealed class Screen(val route: String) {
+    object Main: Screen("main")
+    object Settings: Screen("settings")
 }
 
 @Composable
@@ -61,36 +68,26 @@ private fun App() {
 
     NavHost(
         navController = navController,
-        startDestination = "main",
+        startDestination = Screen.Main.route,
         enterTransition = {
-            slideInHorizontally(
-                animationSpec = tween(
-                    durationMillis = 300
-                ),
-                initialOffsetX = { fullWidth -> fullWidth }
-            )
+            slideInHorizontally(tween(200), initialOffsetX = { it / 2 }) +
+                    fadeIn(tween(200))
         },
         exitTransition = {
-            slideOutHorizontally(
-                animationSpec = tween(
-                    durationMillis = 300
-                ),
-                targetOffsetX = { fullWidth -> fullWidth }
-            )
-        },
+            slideOutHorizontally(tween(200), targetOffsetX = { it / 2 }) +
+                    fadeOut(tween(200))
+        }
     ) {
         composable(
-            "main",
-            enterTransition = {
-                EnterTransition.None
-            },
-            exitTransition = {
-                ExitTransition.None
-            }
+            Screen.Main.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None }
         ) {
-            MainView(viewModel, navController, prefs)
+            MainView(viewModel,
+                onSettingButton = { navController.navigate(Screen.Settings.route) },
+                prefs = prefs)
         }
-        composable("settings") {
+        composable(Screen.Settings.route) {
             SettingsView(navController, settings)
         }
     }

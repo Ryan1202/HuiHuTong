@@ -1,14 +1,14 @@
 package com.ryan1202.huihutong
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.ContextWrapper
-import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
+import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,10 +39,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,27 +53,47 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
+enum class MainTab(
+    val route: String,
+    val icon: ImageVector,
+    val label: String
+) {
+    HOME(
+        route = "home",
+        icon = Icons.Default.Home,
+        label = "首页"
+    ),
+    QR_CODE(
+        route = "qrcode",
+        icon = Icons.AutoMirrored.Filled.List,
+        label = "二维码"
+    );
+
+    companion object {
+        // 获取所有选项卡的便捷方法
+        fun getAllTabs() = entries.toList()
+    }
+}
 
 @Composable
-fun MainView(viewModel: HuiHuTongViewModel, upperNavController: NavController, prefs: SharedPreferences) {
+fun MainView(viewModel: HuiHuTongViewModel, onSettingButton: () -> Unit, prefs: SharedPreferences) {
     val navController = rememberNavController()
-    val icons = listOf(Icons.Default.Home, Icons.AutoMirrored.Filled.List)
+    var selectedItem by remember { mutableStateOf("") }
 
     Scaffold(
-        topBar = {
-            TopBar() {
-                upperNavController.navigate("settings")
-            }
-        },
+        topBar = { TopBar(onSettingButton) },
         bottomBar = {
-            BottomBar(viewModel.items, icons, viewModel.selectedItem.intValue){ index ->
-                viewModel.navigate_item(navController, index)
+            BottomBar(selectedItem){ route ->
+                navController.navigate(route)
             }
         }
     ) { innerPadding ->
@@ -79,107 +101,91 @@ fun MainView(viewModel: HuiHuTongViewModel, upperNavController: NavController, p
             navController = navController,
             startDestination =
                 if (viewModel.openID.value == "" )
-                    { viewModel.items[0] }
-                else { viewModel.items[1] },
+                    { MainTab.HOME.route }
+                else { MainTab.QR_CODE.route },
             enterTransition = {
-                slideInHorizontally(
-                    animationSpec = tween(
-                        durationMillis = 300
-                    ),
-                    initialOffsetX = { fullWidth -> -fullWidth }
-                )
+                slideInHorizontally(tween(300)) +
+                        fadeIn(tween(300))
             },
             exitTransition = {
-                slideOutHorizontally(
-                    animationSpec = tween(
-                        durationMillis = 300
-                    ),
-                    targetOffsetX = { fullWidth -> -fullWidth }
-                )
+                slideOutHorizontally(tween(300)) +
+                        fadeOut(tween(300))
             },
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
 
         ) {
-            composable(viewModel.items[0]) {
-                viewModel.selectedItem.intValue = 0
-                HomeView(viewModel, navController, prefs)
+            composable(MainTab.HOME.route) {
+                selectedItem = MainTab.HOME.route
+                HomeView(
+                    viewModel.latestRelease,
+                    viewModel.openID,
+                    {
+                        viewModel.setOpenID(it, prefs)
+                        navController.navigate(MainTab.QR_CODE.route)
+                    }
+                )
             }
-            composable(viewModel.items[1]) {
-                viewModel.selectedItem.intValue = 1
-                QRCodeView(viewModel, navController)
+            composable(MainTab.QR_CODE.route) {
+                selectedItem = MainTab.QR_CODE.route
+                QRCodeView(
+                    viewModel.latestRelease,
+                    viewModel.isLoading,
+                    viewModel.qrCodeInfo,
+                    viewModel.openID,
+                    { viewModel.getSaToken() },
+                    { viewModel.fetchQRCode() },
+                    { navController.popBackStack() }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun HomeView(viewModel: HuiHuTongViewModel, navController: NavController, prefs: SharedPreferences) {
-    var text by remember { mutableStateOf(viewModel.openID.value) }
-    val updateInfo by viewModel.latestRelease.collectAsState()
+private fun HomeView(latestRelease: StateFlow<GithubRelease?>,
+                     openId: MutableState<String>,
+                     onOpenIdChanged: (String) -> Unit) {
+    var showUpdateDialog by remember { mutableStateOf(false) }
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.fillMaxSize()
     ) {
+        val updateInfo by latestRelease.collectAsState()
         updateInfo?.let { info ->
-            if (viewModel.showUpdateDialog.value) {
-                UpdateAlertDialog(info, viewModel)
+            if (showUpdateDialog) {
+                UpdateAlertDialog(info) {
+                    showUpdateDialog = false
+                }
             }
         }
-        Column {
+        Column (
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ){
             updateInfo?.let { info ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    UpdatePrompt(info, viewModel)
+                UpdatePrompt(info) {
+                    showUpdateDialog = true
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                val context = LocalContext.current
-                TextButton(onClick = {
-                    try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/PairZhu/HuiHuTong/blob/main/README.md"))
-                        context.startActivity(intent)
-                    } catch (e: ActivityNotFoundException) {
-                        Toast.makeText(context, "没有找到可以打开链接的应用", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Text(
-                        text = "如何获取OpenID?（可能需要梯子）",
-                        color = MaterialTheme.colorScheme.primary
-                    )
+            LinkButton("如何获取OpenID?（可能需要梯子）",
+                "https://github.com/PairZhu/HuiHuTong/blob/main/README.md")
+            var text by remember { mutableStateOf(openId.value) }
+            OutlinedTextField(
+                modifier = Modifier.padding(8.dp),
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("OpenID") }
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                modifier = Modifier.width(150.dp),
+                onClick = {
+                    onOpenIdChanged(text)
                 }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
             ) {
-                OutlinedTextField(
-                    modifier = Modifier.padding(8.dp),
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { Text("OpenID") }
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Button(
-                    modifier = Modifier.width(150.dp),
-                    onClick = {
-                        viewModel.setOpenID(text, prefs)
-                        viewModel.selectedItem.intValue = 1
-                        navController.navigate("QRCode")
-                    }
-                ) {
-                    Text("确认/修改")
-                }
+                Text("确认/修改")
             }
         }
     }
@@ -195,23 +201,29 @@ internal fun Context.findActivity(): Activity {
 }
 
 @Composable
-private fun QRCodeView(viewModel: HuiHuTongViewModel, navController: NavController) {
-    val updateInfo by viewModel.latestRelease.collectAsState()
-    val openId = viewModel.openID.value
+private fun QRCodeView(
+    latestRelease: StateFlow<GithubRelease?>,
+    isLoading: MutableState<Boolean>,
+    qrCodeInfo: MutableState<QRCode>,
+    openId: MutableState<String>,
+    getSaToken: () -> Unit,
+    fetchQRCode: () -> Unit,
+    navBack: () -> Unit) {
+
     val context = LocalContext.current
+    var showUpdateDialog by remember { mutableStateOf(false) }
     LaunchedEffect(openId) {
-        if (openId != "") {
-            viewModel.getSaToken()
+        if (openId.value != "") {
+            getSaToken()
         } else {
             Toast.makeText(context, "请先填入OpenID", Toast.LENGTH_SHORT).show()
             delay(300)
-            viewModel.selectedItem.intValue = 0
-            navController.popBackStack()
+            navBack()
         }
         while (true) {
             // 10秒刷新一次
             delay(10000)
-            viewModel.fetchQRCode()
+            fetchQRCode()
         }
     }
 
@@ -219,7 +231,7 @@ private fun QRCodeView(viewModel: HuiHuTongViewModel, navController: NavControll
     DisposableEffect(Unit) {
         val originalBrightness = window?.attributes?.screenBrightness
         window.attributes.apply {
-            screenBrightness = 1F
+            screenBrightness = 1f
             window.attributes = this
         }
         onDispose {
@@ -232,55 +244,56 @@ private fun QRCodeView(viewModel: HuiHuTongViewModel, navController: NavControll
         }
     }
 
+    val updateInfo by latestRelease.collectAsState()
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.fillMaxSize()
     ) {
         updateInfo?.let { info ->
-                if (viewModel.showUpdateDialog.value) {
-                    UpdateAlertDialog(info, viewModel)
+            if (showUpdateDialog) {
+                UpdateAlertDialog(info) {
+                    showUpdateDialog = false
                 }
             }
-        if (viewModel.isLoading && viewModel.qrBitmap == null) {
-            Column {
+        }
+        val info by qrCodeInfo
+        if (isLoading.value && info.qrBitmap == null) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 updateInfo?.let { info ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        UpdatePrompt(info, viewModel)
+                        UpdatePrompt(info) {
+                            showUpdateDialog = true
+                        }
                     }
                 }
                 CircularProgressIndicator()
             }
         } else {
-            viewModel.qrBitmap?.let {
-                Box(
-                    contentAlignment = Alignment.Center
+            info.qrBitmap?.let {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Column {
-                        updateInfo?.let { info ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                UpdatePrompt(info, viewModel)
-                            }
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Column {
-                                Text(viewModel.userName)
-                                Image(
-                                    it.asImageBitmap(),
-                                    contentDescription = "二维码",
-                                    modifier = Modifier.size(300.dp)
-                                )
-                            }
+                    updateInfo?.let { info ->
+                        UpdatePrompt(info) {
+                            showUpdateDialog = true
                         }
                     }
+                    Text(info.userName,
+                        fontSize = MaterialTheme.typography.displaySmall.fontSize)
+                    Spacer(Modifier.height(8.dp))
+                    Image(
+                        it.asImageBitmap(),
+                        contentDescription = "二维码",
+                        modifier = Modifier.size(300.dp),
+                    )
                 }
             }
         }
@@ -289,19 +302,18 @@ private fun QRCodeView(viewModel: HuiHuTongViewModel, navController: NavControll
 
 @Composable
 private fun BottomBar(
-    items: List<String>,
-    icons: List<ImageVector>,
-    selectedItem: Int,
-    onClick: (Int) -> Unit
+    currentRoute: String,
+    onClick: (String) -> Unit
 ) {
     BottomAppBar {
-        items.forEachIndexed { index, item ->
+        val tabs = MainTab.getAllTabs()
+        tabs.forEach { item ->
             NavigationBarItem(
-                icon = { Icon(icons[index], contentDescription = item) },
-                label = { Text(item) },
-                selected = selectedItem == index,
+                icon = { Icon(item.icon, contentDescription = item.label) },
+                label = { Text(item.label) },
+                selected = currentRoute == item.route,
                 onClick = {
-                    onClick(index)
+                    onClick(item.route)
                 }
             )
         }
@@ -325,4 +337,19 @@ private fun TopBar(settingsOnClick: () -> Unit) {
             }
         }
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewQRCodeView() {
+    val release: StateFlow<GithubRelease?> = MutableStateFlow(GithubRelease("", "", "", "", ""))
+    val qrCode = remember { mutableStateOf(QRCode(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888), "null")) }
+    QRCodeView(
+        release,
+        remember { mutableStateOf(false) },
+        qrCode,
+        remember { mutableStateOf("123") },
+        { },
+        { },
+    ) { }
 }

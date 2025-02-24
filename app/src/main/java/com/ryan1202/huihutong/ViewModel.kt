@@ -4,12 +4,10 @@ import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,27 +19,24 @@ import okhttp3.Request
 import org.json.JSONException
 import org.json.JSONObject
 
+data class QRCode(
+    var qrBitmap: Bitmap?,
+    var userName: String
+)
+
 class HuiHuTongViewModel : ViewModel() {
-    var selectedItem = mutableIntStateOf(0)
-    val items = listOf("Home", "QRCode")
-
-
     private val _latestRelease = MutableStateFlow<GithubRelease?>(null)
     val latestRelease: StateFlow<GithubRelease?> = _latestRelease
 
     var openID = mutableStateOf("")
         private set
 
-    var qrBitmap by mutableStateOf<Bitmap?>(null)
-        private set
-    var isLoading by mutableStateOf(false)
-        private set
     var satoken by mutableStateOf("")
         private set
-    var userName by mutableStateOf("")
-        private set
 
-    val showUpdateDialog = mutableStateOf(false)
+    var isLoading = mutableStateOf(false)
+    var qrCodeInfo = mutableStateOf(QRCode(null, ""))
+        private set
 
     fun checkForUpdates(versionName: String, enable: Boolean) {
         if (enable) {
@@ -52,10 +47,6 @@ class HuiHuTongViewModel : ViewModel() {
                 }
             }
         }
-    }
-
-    fun navigate_item(nav_controller: NavController, index: Int) {
-        nav_controller.navigate(items[index])
     }
 
     fun setOpenID(openID: String, prefs: SharedPreferences) {
@@ -90,7 +81,7 @@ class HuiHuTongViewModel : ViewModel() {
                         if (satoken == "") {
                             throw JSONException("'satoken' is null")
                         }
-                        userName = json.getString("name")
+                        qrCodeInfo.value.userName = json.getString("name")
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
@@ -102,9 +93,10 @@ class HuiHuTongViewModel : ViewModel() {
             }
         }
     }
+
     fun fetchQRCode() {
         viewModelScope.launch {
-            isLoading = true
+            isLoading.value = true
 
             var data: String? = null
             withContext(Dispatchers.IO) {
@@ -127,8 +119,8 @@ class HuiHuTongViewModel : ViewModel() {
                 }
             }
 
-            qrBitmap = data?.let { generateQRCode(it) }
-            isLoading = false
+            qrCodeInfo.value.qrBitmap = data?.let { generateQRCode(it) }
+            isLoading.value = false
         }
     }
 }
