@@ -43,11 +43,13 @@ class HuiHuTongViewModel : ViewModel() {
 
     val showUpdateDialog = mutableStateOf(false)
 
-    fun checkForUpdates(versionName: String) {
-        viewModelScope.launch {
-            val release = fetchLatestRelease()
-            if (release != null && checkVersion(versionName, release.tagName)) {
-                _latestRelease.value = release
+    fun checkForUpdates(versionName: String, enable: Boolean) {
+        if (enable) {
+            viewModelScope.launch {
+                val release = fetchLatestRelease()
+                if (release != null && checkVersion(versionName, release.tagName)) {
+                    _latestRelease.value = release
+                }
             }
         }
     }

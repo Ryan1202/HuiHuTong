@@ -41,15 +41,21 @@ private fun App() {
 
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("config", MODE_PRIVATE)
+    val settings = context.getSharedPreferences("settings", MODE_PRIVATE)
     // 获取保存的 openid
     val openId = prefs.getString("openid", null)
+    if (!settings.contains(SettingConfig.detectLatestVersionKey)) {
+        settings.edit().putBoolean(SettingConfig.detectLatestVersionKey, true).apply()
+    }
+    val detectLatestVersion = settings.getBoolean(SettingConfig.detectLatestVersionKey, true)
+
     LaunchedEffect(openId) {
         if (openId != null) {
             viewModel.openID.value = openId
         }
         val versionName = context.packageManager.getPackageInfo(context.packageName, 0).versionName
         versionName?.let {
-            viewModel.checkForUpdates(it)
+            viewModel.checkForUpdates(it, detectLatestVersion)
         }
     }
 
@@ -85,7 +91,7 @@ private fun App() {
             MainView(viewModel, navController, prefs)
         }
         composable("settings") {
-            SettingsView(viewModel, navController)
+            SettingsView(navController, settings)
         }
     }
 }
