@@ -16,7 +16,7 @@ data class GithubRelease(
 
 suspend fun fetchLatestRelease():GithubRelease? =
     withContext(Dispatchers.IO) {
-        val url = "https://api.github.com/repos/Ryan1202/HuiHuTong/releases"
+        val url = "https://api.github.com/repos/Ryan1202/HuiHuTong/releases/latest"
         val client = OkHttpClient()
         val request = Request.Builder()
             .url(url).build()
