@@ -113,7 +113,6 @@ fun MainView(viewModel: HuiHuTongViewModel, onSettingButton: () -> Unit, prefs: 
             },
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize()
 
         ) {
             composable(MainTab.HOME.route) {

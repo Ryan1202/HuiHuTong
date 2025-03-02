@@ -31,8 +31,7 @@ class HuiHuTongViewModel : ViewModel() {
     var openID = mutableStateOf("")
         private set
 
-    var satoken by mutableStateOf("")
-        private set
+    private var saToken by mutableStateOf("")
 
     var isLoading = mutableStateOf(false)
     var qrCodeInfo = mutableStateOf(QRCode(null, ""))
@@ -74,11 +73,11 @@ class HuiHuTongViewModel : ViewModel() {
                     try {
                         val json = tmp_data?.let { JSONObject(it).getJSONObject("data") }
                         if (json != null) {
-                            satoken = json.getString("token")
+                            saToken = json.getString("token")
                         } else {
                             throw JSONException("'data' is null")
                         }
-                        if (satoken == "") {
+                        if (saToken == "") {
                             throw JSONException("'satoken' is null")
                         }
                         qrCodeInfo.value.userName = json.getString("name")
@@ -105,7 +104,7 @@ class HuiHuTongViewModel : ViewModel() {
                     val client = OkHttpClient()
                     val request = Request.Builder()
                         .url("https://api.215123.cn/pms/welcome/make-qrcode")
-                        .addHeader("satoken", satoken)
+                        .addHeader("satoken", saToken)
                         .build()
                     val response = client.newCall(request).execute()
                     tmp_data = response.body()?.string()
