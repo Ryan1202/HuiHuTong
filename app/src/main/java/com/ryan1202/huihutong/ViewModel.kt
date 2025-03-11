@@ -94,6 +94,8 @@ class HuiHuTongViewModel : ViewModel() {
     }
 
     fun fetchQRCode() {
+        if (saToken == "") return
+
         viewModelScope.launch {
             isLoading.value = true
 
@@ -118,8 +120,13 @@ class HuiHuTongViewModel : ViewModel() {
                 }
             }
 
-            qrCodeInfo.value.qrBitmap = data?.let { generateQRCode(it) }
-            isLoading.value = false
+            data?.let {
+                if (it != "null") {
+                    qrCodeInfo.value.qrBitmap =
+                        generateQRCode(it)
+                    isLoading.value = false
+                }
+            }
         }
     }
 }
