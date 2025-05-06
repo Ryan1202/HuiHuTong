@@ -11,4 +11,5 @@
     <string name="Confirm">Confirm/Edit</string>
     <string name="HowToGetOpenID">How to get OpenID?(This may require a VPN)</string>
     <string name="NewVersionAvailable">New version available: %1$s</string>
+    <string name="ThanksFor">"Thanks For: "</string>
 </resources>

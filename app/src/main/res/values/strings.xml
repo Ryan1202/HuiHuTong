@@ -10,4 +10,5 @@
     <string name="Confirm">确认/修改</string>
     <string name="HowToGetOpenID">如何获取OpenID?（可能需要梯子）</string>
     <string name="NewVersionAvailable">新版本可用: %1$s</string>
+    <string name="ThanksFor">"感谢: "</string>
 </resources>

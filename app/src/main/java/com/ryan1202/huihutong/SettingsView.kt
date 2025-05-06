@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,7 +54,7 @@ fun SettingsView(navController: NavController, settings: SharedPreferences) {
                 LinkButton("https://github.com/Ryan1202/HuiHuTong",
                     "https://github.com/Ryan1202/HuiHuTong")
 
-                Text("感谢 Thanks for: ")
+                Text(stringResource(R.string.ThanksFor))
                 LinkButton("https://github.com/PairZhu/HuiHuTong",
                     "https://github.com/PairZhu/HuiHuTong")
             }
