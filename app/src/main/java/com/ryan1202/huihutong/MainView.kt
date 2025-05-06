@@ -135,7 +135,7 @@ fun MainView(viewModel: HuiHuTongViewModel, onSettingButton: () -> Unit, prefs: 
                     viewModel.qrCodeInfo,
                     viewModel.openID,
                     { viewModel.getSaToken() },
-                    { viewModel.fetchQRCode() },
+                    { viewModel.fetchQRCode(it) },
                     { navController.popBackStack() }
                 )
             }
@@ -209,11 +209,12 @@ private fun QRCodeView(
     qrCodeInfo: MutableState<QRCode>,
     openId: MutableState<String>,
     getSaToken: suspend () -> Unit,
-    fetchQRCode: () -> Unit,
+    fetchQRCode: (Boolean) -> Unit,
     navBack: () -> Unit) {
 
     val showUpdateDialog by remember { mutableStateOf(false) }
     LaunchedEffect(openId) {
+        var flag = false
         if (openId.value.isEmpty()) {
             Toast.makeText(context, context.getString(R.string.FillOpenIDPrompt), Toast.LENGTH_SHORT).show()
             delay(300)
@@ -221,12 +222,14 @@ private fun QRCodeView(
         }
         getSaToken()
 
-        fetchQRCode()
+        // 初次加载时显示进度条
+        if (qrCodeInfo.value.qrBitmap == null) flag = true
+        fetchQRCode(flag)
 
         while (true) {
             // 每隔10秒刷新一次
             delay(10_000)
-            fetchQRCode()
+            fetchQRCode(false)
         }
     }
 
@@ -249,7 +252,10 @@ private fun QRCodeView(
 
     val updateInfo by latestRelease.collectAsState()
 
-    QRCodeViewContent(updateInfo, showUpdateDialog, qrCodeInfo, isLoading)
+    QRCodeViewContent(updateInfo, showUpdateDialog, qrCodeInfo, isLoading, {
+        // 手动刷新时显示进度条
+        fetchQRCode(true)
+    })
 }
 
 @Composable
@@ -257,7 +263,8 @@ private fun QRCodeViewContent(
     updateInfo: GithubRelease?,
     showUpdateDialog: Boolean,
     qrCodeInfo: MutableState<QRCode>,
-    isLoading: MutableState<Boolean>
+    isLoading: MutableState<Boolean>,
+    onRefresh: () -> Unit
 ) {
     var showUpdateDialog1 = showUpdateDialog
     Box(
@@ -272,7 +279,7 @@ private fun QRCodeViewContent(
             }
         }
         val info = qrCodeInfo.value
-        if (isLoading.value && info.qrBitmap == null) {
+        if (isLoading.value) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -310,6 +317,12 @@ private fun QRCodeViewContent(
                         contentDescription = stringResource(R.string.QRCode),
                         modifier = Modifier.size(300.dp),
                     )
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = { onRefresh() }
+                    ) {
+                        Text(stringResource(R.string.Refresh))
+                    }
                 }
             }
         }
@@ -366,7 +379,8 @@ fun PreviewQRCodeView() {
             release,
             false,
             qrCode,
-            isLoading
+            isLoading,
+            {}
         )
     }
 }

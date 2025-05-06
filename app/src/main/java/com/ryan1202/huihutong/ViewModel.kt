@@ -76,13 +76,13 @@ class HuiHuTongViewModel : ViewModel() {
         }
     }
 
-    fun fetchQRCode() {
+    fun fetchQRCode(updateLoadingStatus: Boolean) {
         if (saToken.isEmpty()) return
         if (isLoading.value) return
 
-        viewModelScope.launch(Dispatchers.IO) {
-            isLoading.value = true
+        if (updateLoadingStatus) isLoading.value = true
 
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val client = OkHttpClient()
                 val request = Request.Builder()
@@ -103,7 +103,7 @@ class HuiHuTongViewModel : ViewModel() {
                 Log.e("FetchQRCode", "Error fetching QR code", e)
             }
 
-            isLoading.value = false
+            if (updateLoadingStatus) isLoading.value = false
         }
     }
 }
