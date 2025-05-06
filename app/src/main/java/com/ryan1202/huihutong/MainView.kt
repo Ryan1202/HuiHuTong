@@ -208,22 +208,24 @@ private fun QRCodeView(
     isLoading: MutableState<Boolean>,
     qrCodeInfo: MutableState<QRCode>,
     openId: MutableState<String>,
-    getSaToken: () -> Unit,
+    getSaToken: suspend () -> Unit,
     fetchQRCode: () -> Unit,
     navBack: () -> Unit) {
 
     val showUpdateDialog by remember { mutableStateOf(false) }
     LaunchedEffect(openId) {
-        if (openId.value != "") {
-            getSaToken()
-        } else {
-            Toast.makeText(context, "请先填入OpenID", Toast.LENGTH_SHORT).show()
+        if (openId.value.isEmpty()) {
+            Toast.makeText(context, context.getString(R.string.FillOpenIDPrompt), Toast.LENGTH_SHORT).show()
             delay(300)
             navBack()
         }
+        getSaToken()
+
+        fetchQRCode()
+
         while (true) {
-            // 10秒刷新一次
-            delay(10000)
+            // 每隔10秒刷新一次
+            delay(10_000)
             fetchQRCode()
         }
     }
@@ -281,7 +283,7 @@ private fun QRCodeViewContent(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         UpdatePrompt(info) {
-                            showUpdateDialog = true
+                            showUpdateDialog1 = true
                         }
                     }
                 }
@@ -295,7 +297,7 @@ private fun QRCodeViewContent(
                 ) {
                     updateInfo?.let { info ->
                         UpdatePrompt(info) {
-                            showUpdateDialog = true
+                            showUpdateDialog1 = true
                         }
                     }
                     Text(

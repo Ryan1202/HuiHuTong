@@ -54,78 +54,53 @@ class HuiHuTongViewModel : ViewModel() {
         editor.putString("openid", openID)
         editor.apply()
     }
-    fun getSaToken() {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                try {
-                    // 认证登录
-                    val client = OkHttpClient()
-                    val request = Request.Builder()
-                        .url("https://api.215123.cn/web-app/auth/certificateLogin?openId=${openID.value}")
-                        .build()
-                    val call = client.newCall(request)
-                    val response = call.execute()
-                    val tmp_data = response.body()?.string()
-                    if (tmp_data != null) {
-                        Log.e("getSync", tmp_data)
-                    }
+    suspend fun getSaToken() = withContext(Dispatchers.IO) {
+        try {
+            val client = OkHttpClient()
+            val request = Request.Builder()
+                .url("https://api.215123.cn/web-app/auth/certificateLogin?openId=${openID.value}")
+                .build()
+            val response = client.newCall(request).execute()
+            val tmpData = response.body()?.string().orEmpty()
 
-                    try {
-                        val json = tmp_data?.let { JSONObject(it).getJSONObject("data") }
-                        if (json != null) {
-                            saToken = json.getString("token")
-                        } else {
-                            throw JSONException("'data' is null")
-                        }
-                        if (saToken == "") {
-                            throw JSONException("'satoken' is null")
-                        }
-                        qrCodeInfo.value.userName = json.getString("name")
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-                // 获取完satoken后自动获取二维码
-                fetchQRCode()
-            }
+            val json = JSONObject(tmpData).optJSONObject("data")
+                ?: throw JSONException("'data' is null")
+
+            val token = json.optString("token")
+            if (token.isBlank()) throw JSONException("'sa-token' is blank")
+
+            saToken = token
+            qrCodeInfo.value = qrCodeInfo.value.copy(userName = json.optString("name", ""))
+        } catch (e: Exception) {
+            Log.e("GetSaToken", "Error retrieving sa-token", e)
         }
     }
 
     fun fetchQRCode() {
-        if (saToken == "") return
+        if (saToken.isEmpty()) return
+        if (isLoading.value) return
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             isLoading.value = true
 
-            var data: String? = null
-            withContext(Dispatchers.IO) {
-                var tmp_data: String? = null
-                try {
-                    val client = OkHttpClient()
-                    val request = Request.Builder()
-                        .url("https://api.215123.cn/pms/welcome/make-qrcode")
-                        .addHeader("satoken", saToken)
-                        .build()
-                    val response = client.newCall(request).execute()
-                    tmp_data = response.body()?.string()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-                try {
-                    data = tmp_data?.let { JSONObject(it).getString("data") }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
+            try {
+                val client = OkHttpClient()
+                val request = Request.Builder()
+                    .url("https://api.215123.cn/pms/welcome/make-qrcode")
+                    .addHeader("satoken", saToken)
+                    .build()
+                val response = client.newCall(request).execute()
+                val body = response.body()?.string().orEmpty()
 
-            data?.let {
-                if (it != "null") {
-                    qrCodeInfo.value.qrBitmap =
-                        generateQRCode(it)
-                    isLoading.value = false
+                val data = JSONObject(body).optString("data", "")
+                if (!data.isNullOrEmpty() && data != "null") {
+                    val bitmap = generateQRCode(data)
+                    withContext(Dispatchers.Main) {
+                        qrCodeInfo.value.qrBitmap = bitmap
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e("FetchQRCode", "Error fetching QR code", e)
             }
         }
     }
