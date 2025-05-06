@@ -252,10 +252,10 @@ private fun QRCodeView(
 
     val updateInfo by latestRelease.collectAsState()
 
-    QRCodeViewContent(updateInfo, showUpdateDialog, qrCodeInfo, isLoading, {
+    QRCodeViewContent(updateInfo, showUpdateDialog, qrCodeInfo, isLoading) {
         // 手动刷新时显示进度条
         fetchQRCode(true)
-    })
+    }
 }
 
 @Composable
@@ -379,8 +379,7 @@ fun PreviewQRCodeView() {
             release,
             false,
             qrCode,
-            isLoading,
-            {}
-        )
+            isLoading
+        ) {}
     }
 }
