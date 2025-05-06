@@ -47,7 +47,8 @@ fun SettingsView(navController: NavController, settings: SharedPreferences) {
                     settings.edit().putBoolean(SettingConfig.detectLatestVersionKey, it).apply()
                 }
 
-                HorizontalDivider(Modifier.padding(8.dp))
+                HorizontalDivider(Modifier.padding(0.dp, 8.dp))
+                Spacer(Modifier.padding(4.dp))
 
                 Text(stringResource(R.string.Author))
 
@@ -87,7 +88,6 @@ private fun BooleanSetting(title: String, value: Boolean, onValueChange: (Boolea
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Spacer(Modifier.width(8.dp))
         Text(
             modifier = Modifier.weight(1f),
             text = title,
