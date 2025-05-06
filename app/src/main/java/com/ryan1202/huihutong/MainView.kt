@@ -53,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
@@ -65,17 +66,17 @@ import kotlinx.coroutines.flow.StateFlow
 enum class MainTab(
     val route: String,
     val icon: ImageVector,
-    val label: String
+    val labelId: Int
 ) {
     HOME(
         route = "home",
         icon = Icons.Default.Home,
-        label = "首页"
+        labelId = R.string.HomePage
     ),
     QR_CODE(
         route = "qrcode",
         icon = Icons.AutoMirrored.Filled.List,
-        label = "二维码"
+        labelId = R.string.QRCode
     );
 
     companion object {
@@ -119,16 +120,16 @@ fun MainView(viewModel: HuiHuTongViewModel, onSettingButton: () -> Unit, prefs: 
                 selectedItem = MainTab.HOME.route
                 HomeView(
                     viewModel.latestRelease,
-                    viewModel.openID,
-                    {
-                        viewModel.setOpenID(it, prefs)
-                        navController.navigate(MainTab.QR_CODE.route)
-                    }
-                )
+                    viewModel.openID
+                ) {
+                    viewModel.setOpenID(it, prefs)
+                    navController.navigate(MainTab.QR_CODE.route)
+                }
             }
             composable(MainTab.QR_CODE.route) {
                 selectedItem = MainTab.QR_CODE.route
                 QRCodeView(
+                    LocalContext.current,
                     viewModel.latestRelease,
                     viewModel.isLoading,
                     viewModel.qrCodeInfo,
@@ -168,7 +169,8 @@ private fun HomeView(latestRelease: StateFlow<GithubRelease?>,
                     showUpdateDialog = true
                 }
             }
-            LinkButton("如何获取OpenID?（可能需要梯子）",
+            LinkButton(
+                stringResource(R.string.HowToGetOpenID),
                 "https://github.com/PairZhu/HuiHuTong/blob/main/README.md")
             var text by remember { mutableStateOf(openId.value) }
             OutlinedTextField(
@@ -184,7 +186,7 @@ private fun HomeView(latestRelease: StateFlow<GithubRelease?>,
                     onOpenIdChanged(text)
                 }
             ) {
-                Text("确认/修改")
+                Text(stringResource(R.string.Confirm))
             }
         }
     }
@@ -201,6 +203,7 @@ internal fun Context.findActivity(): Activity {
 
 @Composable
 private fun QRCodeView(
+    context: Context,
     latestRelease: StateFlow<GithubRelease?>,
     isLoading: MutableState<Boolean>,
     qrCodeInfo: MutableState<QRCode>,
@@ -209,8 +212,7 @@ private fun QRCodeView(
     fetchQRCode: () -> Unit,
     navBack: () -> Unit) {
 
-    val context = LocalContext.current
-    var showUpdateDialog by remember { mutableStateOf(false) }
+    val showUpdateDialog by remember { mutableStateOf(false) }
     LaunchedEffect(openId) {
         if (openId.value != "") {
             getSaToken()
@@ -245,18 +247,29 @@ private fun QRCodeView(
 
     val updateInfo by latestRelease.collectAsState()
 
+    QRCodeViewContent(updateInfo, showUpdateDialog, qrCodeInfo, isLoading)
+}
+
+@Composable
+private fun QRCodeViewContent(
+    updateInfo: GithubRelease?,
+    showUpdateDialog: Boolean,
+    qrCodeInfo: MutableState<QRCode>,
+    isLoading: MutableState<Boolean>
+) {
+    var showUpdateDialog1 = showUpdateDialog
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.fillMaxSize()
     ) {
         updateInfo?.let { info ->
-            if (showUpdateDialog) {
+            if (showUpdateDialog1) {
                 UpdateAlertDialog(info) {
-                    showUpdateDialog = false
+                    showUpdateDialog1 = false
                 }
             }
         }
-        val info by qrCodeInfo
+        val info = qrCodeInfo.value
         if (isLoading.value && info.qrBitmap == null) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -285,12 +298,14 @@ private fun QRCodeView(
                             showUpdateDialog = true
                         }
                     }
-                    Text(info.userName,
-                        fontSize = MaterialTheme.typography.displaySmall.fontSize)
+                    Text(
+                        info.userName,
+                        fontSize = MaterialTheme.typography.displaySmall.fontSize
+                    )
                     Spacer(Modifier.height(8.dp))
                     Image(
                         it.asImageBitmap(),
-                        contentDescription = "二维码",
+                        contentDescription = stringResource(R.string.QRCode),
                         modifier = Modifier.size(300.dp),
                     )
                 }
@@ -308,8 +323,8 @@ private fun BottomBar(
         val tabs = MainTab.getAllTabs()
         tabs.forEach { item ->
             NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.label) },
-                label = { Text(item.label) },
+                icon = { Icon(item.icon, contentDescription = stringResource(item.labelId)) },
+                label = { Text(stringResource(item.labelId)) },
                 selected = currentRoute == item.route,
                 onClick = {
                     onClick(item.route)
@@ -324,7 +339,7 @@ private fun BottomBar(
 private fun TopBar(settingsOnClick: () -> Unit) {
     TopAppBar(
         title = {
-            Text("HuiHuTong")
+            Text(stringResource(R.string.app_name))
         },
         actions = {
             IconButton(
@@ -332,7 +347,7 @@ private fun TopBar(settingsOnClick: () -> Unit) {
                     settingsOnClick()
                 }
             ) {
-                Icon(Icons.Default.Settings, contentDescription = "设置")
+                Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
             }
         }
     )
@@ -341,14 +356,15 @@ private fun TopBar(settingsOnClick: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun PreviewQRCodeView() {
-    val release: StateFlow<GithubRelease?> = MutableStateFlow(GithubRelease("", "", "", "", ""))
-    val qrCode = remember { mutableStateOf(QRCode(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888), "null")) }
-    QRCodeView(
-        release,
-        remember { mutableStateOf(false) },
-        qrCode,
-        remember { mutableStateOf("123") },
-        { },
-        { },
-    ) { }
+    MaterialTheme {
+        val release by MutableStateFlow(GithubRelease("1.0.0", "1.0.0", "", "", "")).collectAsState()
+        val qrCode = remember { mutableStateOf(QRCode(Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888), "Test User")) }
+        val isLoading = remember { mutableStateOf(false) }
+        QRCodeViewContent(
+            release,
+            false,
+            qrCode,
+            isLoading
+        )
+    }
 }

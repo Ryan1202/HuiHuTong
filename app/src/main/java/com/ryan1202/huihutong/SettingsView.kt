@@ -26,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -43,14 +44,13 @@ fun SettingsView(navController: NavController, settings: SharedPreferences) {
             Column (
                 modifier = Modifier.padding(8.dp)
             ){
-                BooleanSetting("检测最新版本", detectLatestVersion) {
+                BooleanSetting(stringResource(R.string.CheckForUpdate), detectLatestVersion) {
                     settings.edit().putBoolean(SettingConfig.detectLatestVersionKey, it).apply()
                 }
 
                 HorizontalDivider(Modifier.padding(8.dp))
 
-                Text("作者：王嘉骏")
-                Text("Author：Jiajun Wang" )
+                Text(stringResource(R.string.Author))
 
                 LinkButton("https://github.com/Ryan1202/HuiHuTong",
                     "https://github.com/Ryan1202/HuiHuTong")
@@ -71,11 +71,11 @@ private fun TopBar(navController: NavController) {
             IconButton(onClick = {
                 navController.popBackStack()
             }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.Back))
             }
         },
         title = {
-            Text("Settings")
+            Text(stringResource(R.string.settings))
         },
     )
 }

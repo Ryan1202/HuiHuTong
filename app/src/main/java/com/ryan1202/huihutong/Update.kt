@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -44,7 +45,7 @@ fun checkVersion(localVersion: String, remoteVersion: String): Boolean {
 @Composable
 fun UpdatePrompt(info: GithubRelease, showUpdateDialog: () -> Unit) {
     TextButton(onClick = showUpdateDialog) {
-        Text(text = "新版本可用: ${info.tagName}")
+        Text(text = stringResource(R.string.NewVersionAvailable, info.tagName))
     }
 }
 

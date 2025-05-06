@@ -1,3 +1,13 @@
 <resources>
-    <string name="app_name">huihutong</string>
+    <string name="app_name">慧湖通</string>
+    <string name="settings">设置</string>
+    <string name="Author">作者：王嘉骏</string>
+    <string name="QRCode">二维码</string>
+    <string name="HomePage">首页</string>
+    <string name="CheckForUpdate">检测最新版本</string>
+    <string name="Back">返回</string>
+    <string name="FillOpenIDPrompt">请先填入OpenID</string>
+    <string name="Confirm">确认/修改</string>
+    <string name="HowToGetOpenID">如何获取OpenID?（可能需要梯子）</string>
+    <string name="NewVersionAvailable">新版本可用: %1$s</string>
 </resources>
