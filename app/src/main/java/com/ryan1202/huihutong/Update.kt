@@ -34,6 +34,9 @@ fun checkVersion(localVersion: String, remoteVersion: String): Boolean {
         val num2 = if (i < parts2.size) parts2[i].toIntOrNull() else 0
         if (num2!! > num1!!) {
             break
+        } else if (num2 < num1) {
+            flag = false
+            break
         } else {
             count++
         }
