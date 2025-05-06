@@ -96,12 +96,14 @@ class HuiHuTongViewModel : ViewModel() {
                 if (!data.isNullOrEmpty() && data != "null") {
                     val bitmap = generateQRCode(data)
                     withContext(Dispatchers.Main) {
-                        qrCodeInfo.value.qrBitmap = bitmap
+                        qrCodeInfo.value = qrCodeInfo.value.copy(qrBitmap = bitmap)
                     }
                 }
             } catch (e: Exception) {
                 Log.e("FetchQRCode", "Error fetching QR code", e)
             }
+
+            isLoading.value = false
         }
     }
 }
